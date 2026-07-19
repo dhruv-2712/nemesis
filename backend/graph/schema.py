@@ -1,80 +1,38 @@
-"""Graph schema for NEMESIS: node/edge types and their feature column order.
+"""Graph schema for NEMESIS: node/edge types and feature layout.
 
-The transaction graph is *heterogeneous* — accounts, devices, and IPs are
-different kinds of entities with different feature spaces, and PyTorch
-Geometric represents that as a `HeteroData` object (one feature matrix per
-node type, one edge-index matrix per edge type), rather than forcing
-everything into a single node type with padded/shared features.
+Dataset: Elliptic Bitcoin Dataset
+  - 203,769 transaction nodes, 234,355 directed edges
+  - Labels: 1 = illicit, 2 = licit, "unknown" = unlabeled (remapped to 0/1/-1)
+  - 49 discrete time steps (temporal snapshots)
 
-This module is the single source of truth for:
-  - what node types and edge types exist
-  - what order their feature columns appear in
+Unlike the original heterogeneous design (account/device/IP), Elliptic is a
+*homogeneous* directed graph — every node is a Bitcoin transaction, every edge
+is a Bitcoin flow (tx -> tx). PyTorch Geometric represents this as a plain
+`Data` object (not `HeteroData`), which simplifies the model significantly.
 
-`features.py` computes the feature values; `build_graph.py` assembles them
-into tensors. Both must agree on column order, so it lives here once instead
-of being duplicated (and drifting) in both places.
+Feature layout (166 features per node, order locked here):
+  [0]       time_step          — integer 1-49, which temporal snapshot
+  [1:94]    local_f0..f92      — 93 transaction-level features (anonymized:
+                                 input/output counts, fee proxies, volume, etc.)
+  [94:166]  agg_f0..f71        — 72 aggregated 1-hop neighborhood features
+                                 (same feature types, averaged over neighbors)
+
+`features.py` reads the raw CSVs and outputs tensors in this column order.
+`build_graph.py` assembles x, edge_index, y into a PyG Data object.
+Both must use the slices defined here — don't hardcode indices elsewhere.
 """
 
-from enum import Enum
+# Feature slice boundaries (end-exclusive, for use with tensor slicing)
+TIME_STEP_IDX = 0
+LOCAL_SLICE = slice(1, 94)    # 93 features
+AGG_SLICE = slice(94, 166)    # 72 features
+NODE_FEATURE_DIM = 166
 
+# Label mapping: Elliptic raw -> internal
+# raw "1" (illicit) -> 1, raw "2" (licit) -> 0, "unknown" -> -1
+LABEL_MAP = {"1": 1, "2": 0, "unknown": -1}
 
-class NodeType(str, Enum):
-    ACCOUNT = "account"
-    DEVICE = "device"
-    IP = "ip"
-
-
-class EdgeType(str, Enum):
-    TRANSACTION = "transaction"       # account -> account (directed, weighted)
-    SHARED_DEVICE = "shared_device"   # account -> device (undirected in practice)
-    SHARED_IP = "shared_ip"           # account -> ip (undirected in practice)
-
-
-# (source_node_type, edge_type, target_node_type) triples — this is the
-# canonical PyG HeteroData edge-type key format.
-EDGE_TYPE_TRIPLES: dict[EdgeType, tuple[NodeType, NodeType]] = {
-    EdgeType.TRANSACTION: (NodeType.ACCOUNT, NodeType.ACCOUNT),
-    EdgeType.SHARED_DEVICE: (NodeType.ACCOUNT, NodeType.DEVICE),
-    EdgeType.SHARED_IP: (NodeType.ACCOUNT, NodeType.IP),
-}
-
-# Ordered feature columns per node type. Order matters: it defines the
-# column index in the node feature tensor (x) that the GNN will consume.
-NODE_FEATURES: dict[NodeType, list[str]] = {
-    NodeType.ACCOUNT: [
-        "account_age_days",
-        "tx_velocity_1h",       # transactions initiated in the last hour
-        "tx_velocity_24h",
-        "avg_tx_amount",
-        "std_tx_amount",
-        "distinct_devices",     # count of distinct devices this account has used
-        "distinct_ips",
-    ],
-    NodeType.DEVICE: [
-        "distinct_accounts",    # count of distinct accounts seen on this device
-        "first_seen_days_ago",
-    ],
-    NodeType.IP: [
-        "distinct_accounts",
-        "first_seen_days_ago",
-    ],
-}
-
-# Ordered feature columns per edge type. These become edge_attr tensors.
-EDGE_FEATURES: dict[EdgeType, list[str]] = {
-    EdgeType.TRANSACTION: [
-        "amount",
-        "hours_since_epoch",    # timestamp, normalized to a continuous scale
-        "tx_type_encoded",      # categorical transaction type, label-encoded
-    ],
-    EdgeType.SHARED_DEVICE: [],
-    EdgeType.SHARED_IP: [],
-}
-
-
-def node_feature_dim(node_type: NodeType) -> int:
-    return len(NODE_FEATURES[node_type])
-
-
-def edge_feature_dim(edge_type: EdgeType) -> int:
-    return len(EDGE_FEATURES[edge_type])
+# Column names in the raw CSVs
+FEATURES_ID_COL = "txId"
+EDGELIST_COLS = ("txId1", "txId2")
+CLASSES_COLS = ("txId", "class")

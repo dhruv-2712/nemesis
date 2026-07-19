@@ -1,15 +1,23 @@
 #!/usr/bin/env bash
-# Pulls IEEE-CIS Fraud Detection (competition) and PaySim (open dataset) into data/raw/.
-# Requires: ~/.kaggle/kaggle.json API token, and the IEEE-CIS competition rules
-# accepted at https://www.kaggle.com/c/ieee-fraud-detection/rules (Kaggle blocks
-# API downloads for competitions until you've clicked "I Understand and Accept" once).
+# Pulls all NEMESIS datasets into data/raw/.
+#
+# Datasets:
+#   Elliptic Bitcoin (primary)  — open, no rules acceptance needed
+#   IEEE-CIS Fraud Detection    — requires accepting competition rules once at
+#                                 https://www.kaggle.com/c/ieee-fraud-detection/rules
+#   PaySim                      — open synthetic dataset
+#
+# Requires: ~/.kaggle/kaggle.json API token
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 RAW_DIR="$REPO_ROOT/data/raw"
 KAGGLE="$REPO_ROOT/.venv/Scripts/kaggle.exe"
 
-mkdir -p "$RAW_DIR/ieee-cis" "$RAW_DIR/paysim"
+mkdir -p "$RAW_DIR/elliptic" "$RAW_DIR/ieee-cis" "$RAW_DIR/paysim"
+
+echo "==> Downloading Elliptic Bitcoin Dataset (primary)..."
+"$KAGGLE" datasets download -d ellipticco/elliptic-data-set -p "$RAW_DIR/elliptic" --unzip
 
 echo "==> Downloading IEEE-CIS Fraud Detection..."
 "$KAGGLE" competitions download -c ieee-fraud-detection -p "$RAW_DIR/ieee-cis"
