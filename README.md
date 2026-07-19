@@ -51,7 +51,7 @@ The fraud signal concentrates in the *shared* edges — rings reuse devices and 
 ## Tech stack
 
 - **Graph / ML** — PyTorch, PyTorch Geometric (GraphSAGE, GAT), NetworkX (prototyping)
-- **Data** — IEEE-CIS Fraud Detection (primary), PaySim (synthetic augmentation)
+- **Data** — Elliptic Bitcoin Dataset (primary: 203k tx nodes, real illicit labels), IEEE-CIS Fraud Detection (real-world tabular baseline)
 - **Reasoning** — LangGraph, Groq `llama-3.3-70b`
 - **Backend** — FastAPI, SQLite
 - **Frontend** — React + react-force-graph / d3
@@ -61,8 +61,8 @@ The fraud signal concentrates in the *shared* edges — rings reuse devices and 
 
 | Phase | Scope | Status |
 |---|---|---|
-| **0 — Foundation** | Env, frozen graph schema, repo scaffold, data acquisition | ✅ Complete (IEEE-CIS download pending) |
-| **1 — Graph construction** | Raw rows → NetworkX → PyG `Data` objects | 🔜 Next |
+| **0 — Foundation** | Env, frozen graph schema, repo scaffold, data acquisition | ✅ Complete |
+| **1 — Graph construction** | Elliptic CSVs → PyG `Data` (203k nodes, 234k edges, 166 features, validated) | ✅ Complete |
 | **2 — GNN model** | GraphSAGE baseline → GAT; class-imbalance handling; embeddings cluster fraud rings under t-SNE/UMAP | ⬜ Planned |
 | **3 — Reasoning layer** | LangGraph pipeline classifies typology with a visible reasoning chain | ⬜ Planned |
 | **4 — API + visualization** | FastAPI endpoints + React force-directed graph demo | ⬜ Planned |
