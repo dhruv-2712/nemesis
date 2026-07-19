@@ -1,0 +1,24 @@
+# Graph / ML
+torch
+torch_geometric
+networkx
+pandas
+numpy
+scikit-learn
+
+# Notebooks
+jupyter
+ipykernel
+matplotlib
+
+# Reasoning layer (Phase 3)
+langgraph
+langchain-groq
+pydantic
+
+# Backend (Phase 4)
+fastapi
+uvicorn[standard]
+
+# Data acquisition
+kaggle

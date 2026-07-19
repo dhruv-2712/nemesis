@@ -1,0 +1,32 @@
+# Data (large, licensed — never committed)
+data/raw/*
+data/processed/*
+data/graphs/*
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+!data/graphs/.gitkeep
+
+# Model checkpoints (large binaries)
+backend/models/checkpoints/*
+!backend/models/checkpoints/.gitkeep
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# Node
+node_modules/
+frontend/dist/
+frontend/build/
+
+# Env / secrets
+.env
+
+# Editor/OS
+.DS_Store
+.omc/
+
+# Claude Code local runtime
+.claude/
