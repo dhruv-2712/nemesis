@@ -21,6 +21,9 @@ node_modules/
 frontend/dist/
 frontend/build/
 
+# SQLite runtime DB
+backend/db/*.db
+
 # Env / secrets
 .env
 
