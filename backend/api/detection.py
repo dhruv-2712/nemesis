@@ -23,6 +23,9 @@ from backend.reasoning.pipeline import classify_cluster
 
 GRAPH_PATH = Path("data/graphs/elliptic.pt")
 DETECTION_PATH = Path("data/graphs/detection.json")
+# Committed fallback so a fresh deploy serves cluster data without the 135 MB
+# graph or a model pass. Regenerate with `python -m backend.api.detection`.
+SEED_DETECTION_PATH = Path("backend/api/seed_detection.json")
 
 # Reason over the top-N riskiest clusters (keeps live LLM calls bounded).
 MAX_CLUSTERS = 50
@@ -69,10 +72,17 @@ def run_detection(
 
 
 def load_detection() -> dict:
-    """Return the cached detection result, running detection if none exists."""
-    if not DETECTION_PATH.exists():
-        return run_detection()
-    return json.loads(DETECTION_PATH.read_text(encoding="utf-8"))
+    """Return detection results, preferring the fresh cache, then seed, then a run.
+
+    Order: runtime cache (from a prior /detect) -> committed seed (deploy-friendly)
+    -> a live run if the graph is available. This lets the API serve anywhere
+    while still recomputing when the full artifacts are present.
+    """
+    if DETECTION_PATH.exists():
+        return json.loads(DETECTION_PATH.read_text(encoding="utf-8"))
+    if SEED_DETECTION_PATH.exists():
+        return json.loads(SEED_DETECTION_PATH.read_text(encoding="utf-8"))
+    return run_detection()
 
 
 if __name__ == "__main__":

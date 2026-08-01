@@ -1,0 +1,30 @@
+# Local orchestration: backend (FastAPI) + frontend (nginx).
+# `docker compose up --build` then open http://localhost:5173.
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    environment:
+      # Allow the compose frontend origin through CORS.
+      FRONTEND_ORIGIN: http://localhost:5173
+      NEMESIS_DB_PATH: /app/backend/db/nemesis.db
+      # GROQ_API_KEY: set to enable LLM narration (falls back to heuristic if unset).
+    ports:
+      - "8000:8000"
+    # Mount local artifacts if present so /detect can recompute; the committed
+    # seed lets the read API serve even without them.
+    volumes:
+      - ./data:/app/data:ro
+      - ./backend/models/checkpoints:/app/backend/models/checkpoints:ro
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+      args:
+        VITE_API_BASE: http://localhost:8000
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend

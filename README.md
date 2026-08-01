@@ -15,38 +15,42 @@ Classic fraud detection scores rows independently. NEMESIS scores *structure*: i
 ## Architecture
 
 ```
-Raw transactions (IEEE-CIS / PaySim)
+Elliptic Bitcoin transactions (203k nodes · 234k flows · 166 features)
         │
         ▼
-Graph construction  ── accounts · devices · IPs as nodes
-                       transfers & shared attributes as edges
+Graph construction  ── each Bitcoin transaction is a node,
+                       each flow (tx → tx) a directed edge
         │
         ▼
-GNN (GraphSAGE → GAT) ── learns embeddings, flags structurally
-                          anomalous clusters
+GNN (GraphSAGE → GAT) ── learns embeddings, scores every node's
+                          illicit risk, flags high-risk clusters
         │
         ▼
 LLM reasoning (LangGraph) ── narrates WHY a cluster is suspicious,
-                             classifies typology + confidence
+                             classifies laundering typology + confidence
         │
         ▼
 FastAPI backend  ⇆  React frontend (force-directed graph, click-to-inspect)
 ```
 
-### Graph schema (frozen)
+### Graph schema
 
-Heterogeneous graph — each entity type carries its own feature space rather than being flattened into one:
+NEMESIS runs on the **Elliptic Bitcoin Dataset** — a *homogeneous* directed graph
+where every node is a Bitcoin transaction and every edge is a flow of value:
 
 | Element | Type | Notes |
 |---|---|---|
-| **Node** | `account` | age, tx velocity (1h/24h), avg/std amount, distinct devices/IPs |
-| **Node** | `device` | distinct accounts seen, first-seen age |
-| **Node** | `ip` | distinct accounts seen, first-seen age |
-| **Edge** | `transaction` | account → account, directed & weighted (amount, time, type) |
-| **Edge** | `shared_device` | account — device |
-| **Edge** | `shared_ip` | account — IP |
+| **Node** | `transaction` | 166 features: 1 time step + 93 local (volume, fees, in/out counts) + 72 aggregated 1-hop neighborhood features |
+| **Edge** | `flow` | transaction → transaction, directed (value moving forward through the chain) |
+| **Label** | `class` | illicit / licit / unknown — 4,545 illicit among 46,564 labeled (9.8%); 157k unlabeled |
 
-The fraud signal concentrates in the *shared* edges — rings reuse devices and IPs in ways a normal user base does not.
+> **Design note — the pivot.** The project was scoped for a *heterogeneous*
+> account/device/IP graph on IEEE-CIS/PaySim. Data inspection killed that plan:
+> PaySim has no device/IP columns and a degenerate fan-in topology (no rings),
+> and neither source cleanly populated the intended schema. Elliptic is real
+> Bitcoin data with genuine illicit ring structure and strong clustering — so
+> the schema became homogeneous tx→tx. The *thesis* (detect fraud by structure,
+> explain it with an LLM) is unchanged; the substrate got more defensible.
 
 ## Tech stack
 
@@ -66,8 +70,8 @@ The fraud signal concentrates in the *shared* edges — rings reuse devices and 
 | **2 — GNN model** | GraphSAGE baseline (+ GAT); temporal split; class-imbalance handling. **Test ROC-AUC 0.879, illicit F1 0.53**; embeddings visibly cluster illicit tx under t-SNE | ✅ Complete |
 | **3 — Reasoning layer** | LangGraph pipeline classifies typology with a visible reasoning chain | ⬜ Planned |
 | **4 — API + visualization** | FastAPI (ingest / detect / clusters) + SQLite; React force-directed graph, color-coded by risk, click-to-inspect reasoning | ✅ Complete |
-| **5 — Validation case** | Reconstruct a documented real-world mule/laundering typology and show NEMESIS flags it | ⬜ Planned |
-| **6 — Polish + deploy** | Docker (non-root), Render deploy | ⬜ Planned |
+| **5 — Validation case** | Peel-chain typology reconstructed from real illicit features; NEMESIS flags it (risk 0.85) + classifies `peeling_chain` @ 0.95 | ✅ Complete |
+| **6 — Polish + deploy** | Non-root Docker (backend + nginx frontend), docker-compose, Render deploy helper | ✅ Complete |
 
 ### The demo
 
@@ -115,13 +119,50 @@ notebooks/    # EDA, graph sanity checks, embedding evaluation
 
 ## Getting started
 
+**Docker (whole stack):**
+
+```bash
+docker compose up --build      # backend :8000, frontend :5173
+```
+
+The read API serves flagged clusters from a committed detection snapshot, so the
+demo runs without downloading the 135 MB graph. Set `GROQ_API_KEY` to swap the
+structural heuristic for live LLM narration.
+
+**Local dev:**
+
 ```bash
 python -m venv .venv && source .venv/Scripts/activate   # Windows: .venv\Scripts\activate
 pip install -r backend/requirements.txt
+cp .env.example .env                                    # optional: add GROQ_API_KEY
 
-cp .env.example .env        # add your GROQ_API_KEY
-bash scripts/download_data.sh   # needs ~/.kaggle/kaggle.json + accepted IEEE-CIS rules
+# with the Elliptic graph built (data/graphs/elliptic.pt):
+python -m backend.models.train        # train GraphSAGE  (or --model gat)
+python -m backend.models.evaluate     # test metrics + embeddings
+python -m backend.api.detection       # build detection snapshot
+uvicorn backend.main:app --reload     # API at http://localhost:8000
+
+cd frontend && npm install && npm run dev   # UI at http://localhost:5173
 ```
+
+**Tests:** `pytest backend/tests validation/replay_test.py`
+
+## S-tier roadmap
+
+Where NEMESIS goes beyond a snapshot classifier:
+
+- **Temporal graph modeling** — treat transactions as a *stream* rather than a
+  49-step snapshot (EvolveGCN / temporal attention), so rings are caught as they
+  form instead of after the fact. The Elliptic time steps are already the seam
+  for this.
+- **Cross-institution federated detection** — many laundering rings span banks;
+  no single institution sees the whole graph. Federated / privacy-preserving GNN
+  training would surface cross-bank rings without sharing raw customer data.
+- **Live ingestion → incremental re-scoring** — the `/api/ingest` contract is in
+  place; the next step is splicing new transactions into the graph and re-scoring
+  only the affected neighborhood.
+- **Amount-aware peel detection** — Elliptic anonymizes amounts; on a source with
+  real values, weight the reasoning layer by the *peel ratio* per hop.
 
 ---
 
