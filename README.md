@@ -65,9 +65,24 @@ The fraud signal concentrates in the *shared* edges — rings reuse devices and 
 | **1 — Graph construction** | Elliptic CSVs → PyG `Data` (203k nodes, 234k edges, 166 features, validated) | ✅ Complete |
 | **2 — GNN model** | GraphSAGE baseline (+ GAT); temporal split; class-imbalance handling. **Test ROC-AUC 0.879, illicit F1 0.53**; embeddings visibly cluster illicit tx under t-SNE | ✅ Complete |
 | **3 — Reasoning layer** | LangGraph pipeline classifies typology with a visible reasoning chain | ⬜ Planned |
-| **4 — API + visualization** | FastAPI endpoints + React force-directed graph demo | ⬜ Planned |
+| **4 — API + visualization** | FastAPI (ingest / detect / clusters) + SQLite; React force-directed graph, color-coded by risk, click-to-inspect reasoning | ✅ Complete |
 | **5 — Validation case** | Reconstruct a documented real-world mule/laundering typology and show NEMESIS flags it | ⬜ Planned |
 | **6 — Polish + deploy** | Docker (non-root), Render deploy | ⬜ Planned |
+
+### The demo
+
+The GNN flags structurally anomalous transaction clusters; the reasoning layer
+classifies each one's laundering typology with an auditable reasoning chain. The
+React front-end draws each flagged cluster as a force-directed graph (nodes
+colored by GNN risk) with a click-to-inspect verdict panel:
+
+![NEMESIS UI — flagged peeling-chain cluster with typology reasoning](docs/img/nemesis_ui.jpg)
+
+*Above: a flagged cluster the GNN scored at ~1.0 illicit risk, classified as a
+**peeling chain** — the front-end renders the 12-transaction linear flow while
+the inspector cites the structural evidence (longest directed chain 11 of 12
+nodes, fan-out 1). Other clusters surface as **consolidation cash-outs**
+(many-to-one hubs) and **layering** patterns.*
 
 ### Phase 2 proof — embeddings learn the ring structure
 
