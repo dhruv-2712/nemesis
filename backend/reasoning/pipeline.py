@@ -18,6 +18,15 @@ from __future__ import annotations
 import os
 from typing import Optional, TypedDict
 
+try:
+    # Load GROQ_API_KEY (and other vars) from a local .env if present. Optional —
+    # the pipeline falls back to the heuristic when no key is found either way.
+    from dotenv import load_dotenv
+
+    load_dotenv()
+except ImportError:
+    pass
+
 from langgraph.graph import END, StateGraph
 
 from backend.reasoning.prompts import SYSTEM_PROMPT, build_user_prompt

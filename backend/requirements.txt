@@ -15,6 +15,7 @@ matplotlib
 langgraph
 langchain-groq
 pydantic
+python-dotenv
 
 # Backend (Phase 4)
 fastapi
