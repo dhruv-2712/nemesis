@@ -22,3 +22,6 @@ uvicorn[standard]
 
 # Data acquisition
 kaggle
+
+# Tests
+pytest
