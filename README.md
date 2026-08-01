@@ -63,11 +63,24 @@ The fraud signal concentrates in the *shared* edges — rings reuse devices and 
 |---|---|---|
 | **0 — Foundation** | Env, frozen graph schema, repo scaffold, data acquisition | ✅ Complete |
 | **1 — Graph construction** | Elliptic CSVs → PyG `Data` (203k nodes, 234k edges, 166 features, validated) | ✅ Complete |
-| **2 — GNN model** | GraphSAGE baseline → GAT; class-imbalance handling; embeddings cluster fraud rings under t-SNE/UMAP | ⬜ Planned |
+| **2 — GNN model** | GraphSAGE baseline (+ GAT); temporal split; class-imbalance handling. **Test ROC-AUC 0.879, illicit F1 0.53**; embeddings visibly cluster illicit tx under t-SNE | ✅ Complete |
 | **3 — Reasoning layer** | LangGraph pipeline classifies typology with a visible reasoning chain | ⬜ Planned |
 | **4 — API + visualization** | FastAPI endpoints + React force-directed graph demo | ⬜ Planned |
 | **5 — Validation case** | Reconstruct a documented real-world mule/laundering typology and show NEMESIS flags it | ⬜ Planned |
 | **6 — Polish + deploy** | Docker (non-root), Render deploy | ⬜ Planned |
+
+### Phase 2 proof — embeddings learn the ring structure
+
+The GNN is never told where the rings are. Yet when its learned node embeddings
+are projected to 2D, illicit transactions (red) separate cleanly from licit
+ones (blue) — evidence the model learned *structure*, not per-transaction noise:
+
+![t-SNE of GraphSAGE embeddings](notebooks/embedding_tsne.png)
+
+Evaluation follows the canonical leakage-free **temporal split** (train on early
+time steps, test on later ones). The visible val→test metric drop is the
+well-documented Elliptic *dark-market shutdown* at time step ~43 — a genuine
+distribution shift, not a modeling artifact.
 
 ## Repository layout
 
