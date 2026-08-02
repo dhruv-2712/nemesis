@@ -91,6 +91,19 @@ def _summarize(sub: nx.DiGraph, cluster_id: str, probs, time_steps) -> ClusterFe
     )
 
 
+def summarize_graph(node_ids, edges, probs, time_steps, cluster_id: str = "sandbox") -> ClusterFeatures:
+    """ClusterFeatures for an arbitrary graph (used by the sandbox).
+
+    node_ids index into probs/time_steps; edges are (src_idx, dst_idx) pairs.
+    Same structural summary as the flagged-cluster path, so a hand-built pattern
+    is described with exactly the features the detector uses.
+    """
+    g = nx.DiGraph()
+    g.add_nodes_from(node_ids)
+    g.add_edges_from(edges)
+    return _summarize(g, cluster_id, probs, time_steps)
+
+
 def extract_flagged(
     data,
     probs: Tensor | None = None,

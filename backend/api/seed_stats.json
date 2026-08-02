@@ -1,0 +1,19 @@
+{
+  "dataset": {
+    "nodes": 203769,
+    "edges": 234355,
+    "features": 166,
+    "labeled": 46564,
+    "illicit": 4545,
+    "illicit_rate": 0.0976,
+    "time_steps": 49
+  },
+  "model": {
+    "architecture": "GraphSAGE",
+    "roc_auc": 0.879,
+    "pr_auc": 0.486,
+    "illicit_f1": 0.53,
+    "illicit_precision": 0.465,
+    "illicit_recall": 0.617
+  }
+}

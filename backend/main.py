@@ -14,7 +14,14 @@ import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from backend.api import routes_clusters, routes_detect, routes_ingest
+from backend.api import (
+    routes_clusters,
+    routes_detect,
+    routes_embedding,
+    routes_ingest,
+    routes_sandbox,
+    routes_stats,
+)
 from backend.db.models import init_db
 
 app = FastAPI(
@@ -36,6 +43,9 @@ app.add_middleware(
 app.include_router(routes_ingest.router)
 app.include_router(routes_detect.router)
 app.include_router(routes_clusters.router)
+app.include_router(routes_stats.router)
+app.include_router(routes_embedding.router)
+app.include_router(routes_sandbox.router)
 
 
 @app.on_event("startup")

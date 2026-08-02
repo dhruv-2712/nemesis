@@ -9,6 +9,9 @@ data/graphs/*
 # Model checkpoints (large binaries)
 backend/models/checkpoints/*
 !backend/models/checkpoints/.gitkeep
+# ...except the trained GraphSAGE checkpoint (239 KB) — needed for the sandbox
+# and embedding features on deploy without the 135 MB graph.
+!backend/models/checkpoints/graphsage.pt
 
 # Python
 .venv/
