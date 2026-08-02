@@ -21,6 +21,9 @@ async function post(path, body) {
 export const listClusters = () => get("/api/clusters");
 export const getCluster = (id) => get(`/api/clusters/${id}`);
 export const runDetection = (threshold = 0.7) => post("/api/detect", { threshold });
+export const getStats = () => get("/api/stats");
+export const getEmbedding = () => get("/api/embedding");
+export const analyzeSandbox = (nodes, edges) => post("/api/sandbox", { nodes, edges });
 
 // Risk -> color on a green (safe) -> amber -> red (illicit) scale.
 export function riskColor(risk) {
@@ -39,3 +42,15 @@ export function riskColor(risk) {
 export function typologyLabel(t) {
   return (t || "unknown").replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
+
+// Stable color per laundering typology (used across charts, badges, legends).
+export const TYPOLOGY_COLORS = {
+  peeling_chain: "#f59e0b",
+  consolidation_cashout: "#ef4444",
+  scam_payout_fanout: "#a855f7",
+  mixing_tumbling: "#ec4899",
+  layering: "#3b82f6",
+  unknown_suspicious: "#64748b",
+};
+
+export const typologyColor = (t) => TYPOLOGY_COLORS[t] || "#64748b";
