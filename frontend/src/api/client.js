@@ -1,6 +1,8 @@
 // Thin fetch wrappers for the NEMESIS backend.
-// Base URL is configurable so the same build works locally and when deployed.
-const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000";
+// Default is same-origin "" — local dev proxies /api via Vite, production proxies
+// /api via vercel.json to the Render backend. Override with VITE_API_BASE if you
+// want to hit an absolute backend URL directly (CORS must then allow the origin).
+const API_BASE = import.meta.env.VITE_API_BASE ?? "";
 
 async function get(path) {
   const res = await fetch(`${API_BASE}${path}`);

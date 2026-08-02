@@ -1,0 +1,26 @@
+# Render Blueprint — deploy the NEMESIS backend as a Docker web service.
+#
+# Usage: Render dashboard → New → Blueprint → connect the nemesis repo.
+# Render reads this file and provisions the service. Set the two `sync: false`
+# secrets (GROQ_API_KEY, FRONTEND_ORIGIN) in the dashboard after the first deploy.
+#
+# Note on memory: PyTorch has a large baseline footprint. The read API (dashboard,
+# explorer, embedding) serves committed JSON, but the process still imports torch
+# for the sandbox/detect paths. If the free instance OOMs, bump to a paid plan
+# (more RAM) — the model itself is tiny, it's torch's baseline that's heavy.
+services:
+  - type: web
+    name: nemesis-api
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+    plan: free
+    autoDeploy: true
+    envVars:
+      - key: NEMESIS_DB_PATH
+        value: /app/backend/db/nemesis.db
+      - key: FRONTEND_ORIGIN
+        sync: false   # set to your Vercel URL, e.g. https://nemesis.vercel.app
+      - key: GROQ_API_KEY
+        sync: false   # set your Groq key here (optional; heuristic fallback if unset)
