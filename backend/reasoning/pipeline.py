@@ -160,13 +160,18 @@ def build_pipeline():
 _PIPELINE = None
 
 
-def classify_cluster(features: ClusterFeatures) -> TypologyVerdict:
-    """Run one cluster through the reasoning pipeline and return its verdict."""
+def classify_cluster_verbose(features: ClusterFeatures) -> tuple[TypologyVerdict, bool]:
+    """Run one cluster through the pipeline; return (verdict, used_llm)."""
     global _PIPELINE
     if _PIPELINE is None:
         _PIPELINE = build_pipeline()
     result = _PIPELINE.invoke({"features": features, "verdict": None, "used_llm": False})
-    return result["verdict"]
+    return result["verdict"], result["used_llm"]
+
+
+def classify_cluster(features: ClusterFeatures) -> TypologyVerdict:
+    """Run one cluster through the reasoning pipeline and return its verdict."""
+    return classify_cluster_verbose(features)[0]
 
 
 if __name__ == "__main__":

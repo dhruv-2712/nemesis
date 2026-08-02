@@ -18,8 +18,9 @@ from pathlib import Path
 
 import torch
 
+from backend.reasoning.cache import VerdictCache, clear_cache
 from backend.reasoning.cluster import extract_flagged, DEFAULT_THRESHOLD
-from backend.reasoning.pipeline import classify_cluster
+from backend.reasoning.pipeline import classify_cluster_verbose
 
 GRAPH_PATH = Path("data/graphs/elliptic.pt")
 DETECTION_PATH = Path("data/graphs/detection.json")
@@ -52,17 +53,38 @@ def _cluster_record(fc, verdict) -> dict:
 
 
 def run_detection(
-    threshold: float = DEFAULT_THRESHOLD, max_clusters: int = MAX_CLUSTERS
+    threshold: float = DEFAULT_THRESHOLD,
+    max_clusters: int = MAX_CLUSTERS,
+    refresh: bool = False,
 ) -> dict:
-    """Run extraction + reasoning over the graph and cache the result to disk."""
+    """Run extraction + reasoning over the graph and cache the result to disk.
+
+    Reasoning verdicts are served from a persistent fingerprint cache: identical
+    structures reuse one verdict, so repeat runs make few or zero LLM calls. Pass
+    refresh=True to discard the cache and regenerate every verdict from scratch.
+    """
+    if refresh:
+        clear_cache()
+
     data = torch.load(GRAPH_PATH, weights_only=False)
     flagged = extract_flagged(data, threshold=threshold)[:max_clusters]
 
-    clusters = [_cluster_record(fc, classify_cluster(fc.features)) for fc in flagged]
+    cache = VerdictCache()
+    clusters = []
+    for fc in flagged:
+        verdict = cache.get(fc.features)
+        if verdict is None:
+            verdict, used_llm = classify_cluster_verbose(fc.features)
+            cache.put(fc.features, verdict, "llm" if used_llm else "heuristic")
+        clusters.append(_cluster_record(fc, verdict))
+    cache.flush()
+
     result = {
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "threshold": threshold,
         "num_clusters": len(clusters),
+        "reasoning_calls": cache.misses,
+        "cache_hits": cache.hits,
         "clusters": clusters,
     }
 
@@ -86,10 +108,19 @@ def load_detection() -> dict:
 
 
 if __name__ == "__main__":
-    res = run_detection()
-    print(f"detected {res['num_clusters']} clusters -> {DETECTION_PATH}")
+    import argparse
     from collections import Counter
 
+    parser = argparse.ArgumentParser(description="Run NEMESIS detection over the graph.")
+    parser.add_argument(
+        "--refresh", action="store_true",
+        help="discard the reasoning cache and regenerate every verdict (more LLM calls)",
+    )
+    args = parser.parse_args()
+
+    res = run_detection(refresh=args.refresh)
+    print(f"detected {res['num_clusters']} clusters -> {DETECTION_PATH}")
+    print(f"reasoning calls: {res['reasoning_calls']} | cache hits: {res['cache_hits']}")
     by_typ = Counter(c["typology"] for c in res["clusters"])
     for typ, n in by_typ.most_common():
         print(f"  {typ}: {n}")
