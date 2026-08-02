@@ -73,20 +73,32 @@ where every node is a Bitcoin transaction and every edge is a flow of value:
 | **5 — Validation case** | Peel-chain typology reconstructed from real illicit features; NEMESIS flags it (risk 0.85) + classifies `peeling_chain` @ 0.95 | ✅ Complete |
 | **6 — Polish + deploy** | Non-root Docker (backend + nginx frontend), docker-compose, Render deploy helper | ✅ Complete |
 
-### The demo
+### The console
 
-The GNN flags structurally anomalous transaction clusters; the reasoning layer
-classifies each one's laundering typology with an auditable reasoning chain. The
-React front-end draws each flagged cluster as a force-directed graph (nodes
-colored by GNN risk) with a click-to-inspect verdict panel:
+NEMESIS is a four-view intelligence console:
 
-![NEMESIS UI — flagged peeling-chain cluster with typology reasoning](docs/img/nemesis_ui.jpg)
+**Command center** — dataset scale, live typology distribution, flagged-cluster
+risk, and the model's real temporal-test metrics.
 
-*Above: a flagged cluster the GNN scored at ~1.0 illicit risk, classified as a
-**peeling chain** — the front-end renders the 12-transaction linear flow while
-the inspector cites the structural evidence (longest directed chain 11 of 12
-nodes, fan-out 1). Other clusters surface as **consolidation cash-outs**
-(many-to-one hubs) and **layering** patterns.*
+![NEMESIS dashboard](docs/img/nemesis_dashboard.jpg)
+
+**Sandbox** — *build a transaction pattern and watch NEMESIS classify it live.*
+Pick a preset (peel chain, consolidation, mixer, fan-out) or click node-to-node
+to wire your own; each node is seeded with real features from the illicit/licit
+distribution, the GNN scores every node, and the reasoning layer names the
+typology — the full pipeline on input that never existed in training.
+
+![NEMESIS sandbox — live scoring of a hand-built peel chain](docs/img/nemesis_sandbox.jpg)
+
+**Explorer** — every flagged cluster as a force-directed graph (nodes colored by
+GNN risk) with search / typology filter / sort and a click-to-inspect verdict
+panel showing the reasoning chain.
+
+**Embedding map** — the learned embeddings projected to 2D (t-SNE): illicit
+transactions cluster apart from licit. Click a flagged point to jump to its
+cluster in the Explorer.
+
+![NEMESIS embedding map](docs/img/nemesis_embedding.jpg)
 
 ### Phase 2 proof — embeddings learn the ring structure
 
